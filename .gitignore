@@ -1,0 +1,26 @@
+# CMake 构建目录和缓存
+build/
+CMakeCache.txt
+CMakeFiles/
+Makefile
+cmake_install.cmake
+compile_commands.json
+
+# 编译产生的中间文件和可执行文件
+*.o
+*.obj
+*.so
+*.a
+*.out
+http_server
+run_tests
+
+# Claude Code 配置
+CLAUDE.md
+DESIGN.md
+
+# 编辑器和 IDE 缓存
+.vscode/
+.idea/
+*.swp
+*.suo
