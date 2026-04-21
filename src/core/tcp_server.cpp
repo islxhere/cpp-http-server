@@ -47,6 +47,11 @@ void TcpServer::newConnection(int sockfd, const InetAddress& peer_addr) {
     conn->setCloseCallback(
         [this](const TcpConnectionPtr& c) { removeConnection(c); });
 
+    // 通知上层新连接建立（如 HttpServer 在此绑定 HttpContext）
+    if (connection_callback_) {
+        connection_callback_(conn);
+    }
+
     conn->connectEstablished();
 }
 

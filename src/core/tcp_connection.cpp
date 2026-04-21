@@ -70,6 +70,10 @@ void TcpConnection::shutdown() {
     ::shutdown(conn_fd_, SHUT_WR);
 }
 
+void TcpConnection::forceClose() {
+    handleClose();
+}
+
 void TcpConnection::connectEstablished() {
     channel_->enableReading();
 }
@@ -127,6 +131,18 @@ void TcpConnection::handleClose() {
 
 void TcpConnection::handleError() {
     handleClose();
+}
+
+void TcpConnection::setContext(const std::any& context) {
+    context_ = context;
+}
+
+const std::any& TcpConnection::getContext() const {
+    return context_;
+}
+
+std::any& TcpConnection::mutableContext() {
+    return context_;
 }
 
 }  // namespace httpserver

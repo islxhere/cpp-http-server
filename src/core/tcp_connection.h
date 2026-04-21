@@ -4,6 +4,7 @@
 // 生命周期由 shared_ptr 管理，可安全跨线程传递。
 // 内部持有 Channel 监听读写事件，以及输入输出 Buffer。
 
+#include <any>
 #include <functional>
 #include <memory>
 #include <string>
@@ -38,6 +39,7 @@ public:
     void send(const std::string& message);
 
     void shutdown();
+    void forceClose();
 
     void connectEstablished();
     void connectDestroyed();
@@ -46,6 +48,11 @@ public:
     Buffer* inputBuffer();
     Buffer* outputBuffer();
     int fd() const;
+
+    // 用于绑定每连接上下文（如 HttpContext）
+    void setContext(const std::any& context);
+    const std::any& getContext() const;
+    std::any& mutableContext();
 
 private:
     void handleRead();
@@ -63,6 +70,7 @@ private:
     MessageCallback message_callback_;
     CloseCallback close_callback_;
     WriteCompleteCallback write_complete_callback_;
+    std::any context_;
 };
 
 }  // namespace httpserver

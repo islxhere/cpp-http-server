@@ -1,34 +1,36 @@
 #include <cstdio>
 
-#include "core/buffer.h"
 #include "core/event_loop.h"
 #include "core/inet_address.h"
-#include "core/tcp_connection.h"
-#include "core/tcp_server.h"
+#include "http/http_request.h"
+#include "http/http_response.h"
+#include "http/http_server.h"
 
 int main() {
-    std::printf("Echo Server starting on port 8080...\n");
+    std::printf("HTTP Server starting on port 8080...\n");
 
     httpserver::EventLoop loop;
     httpserver::InetAddress listen_addr(8080);
-    httpserver::TcpServer server(&loop, listen_addr);
+    httpserver::HttpServer server(&loop, listen_addr);
 
-    server.setMessageCallback(
-        [](const httpserver::TcpServer::TcpConnectionPtr& conn,
-           httpserver::Buffer* buf) {
-            std::string data = buf->retrieveAllAsString();
-            std::printf("Received %zu bytes from %s\n",
-                        data.size(), conn->name().c_str());
-            conn->send(data);
-        });
-
-    server.setConnectionCallback(
-        [](const httpserver::TcpServer::TcpConnectionPtr& conn) {
-            std::printf("New connection: %s\n", conn->name().c_str());
+    server.setHttpCallback(
+        [](const httpserver::HttpRequest& req, httpserver::HttpResponse* resp) {
+            if (req.method() == httpserver::HttpRequest::Method::kGet &&
+                req.path() == "/") {
+                resp->setStatusCode(httpserver::HttpResponse::HttpStatusCode::k200Ok);
+                resp->setStatusMessage("OK");
+                resp->setContentType("text/html");
+                resp->setBody("<h1>Hello from my C++ Http Server!</h1>");
+            } else {
+                resp->setStatusCode(httpserver::HttpResponse::HttpStatusCode::k404NotFound);
+                resp->setStatusMessage("Not Found");
+                resp->setContentType("text/html");
+                resp->setBody("<h1>404 Not Found</h1>");
+            }
         });
 
     server.start();
-    std::printf("Echo Server is running on port 8080\n");
+    std::printf("HTTP Server is running on http://127.0.0.1:8080\n");
     loop.loop();
 
     return 0;
