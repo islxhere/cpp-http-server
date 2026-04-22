@@ -12,6 +12,8 @@
 #include <mutex>
 #include <vector>
 
+#include "core/channel.h"
+
 namespace httpserver {
 
 class Channel;
@@ -50,6 +52,8 @@ public:
 
 private:
     void doPendingFunctors();
+    void handleRead();       // 读取 wakeup_fd_ 唤醒 epoll
+    void wakeup();           // 向 wakeup_fd_ 写入数据唤醒 epoll
 
     std::atomic<bool> looping_;
     std::atomic<bool> quit_;
@@ -57,6 +61,9 @@ private:
 
     std::unique_ptr<Poller> poller_;
     ChannelList active_channels_;
+
+    int wakeup_fd_;                              // eventfd，用于跨线程唤醒
+    std::unique_ptr<Channel> wakeup_channel_;    // 监听 wakeup_fd_
 
     std::mutex mutex_;
     std::vector<Functor> pending_functors_;

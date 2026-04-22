@@ -4,7 +4,8 @@
 #include <stdexcept>
 #include <unistd.h>
 
-#include "core/channel.h"
+#include <sys/eventfd.h>
+
 #include "core/poller.h"
 
 namespace httpserver {
@@ -16,15 +17,24 @@ EventLoop::EventLoop()
     : looping_(false),
       quit_(false),
       thread_id_(::gettid()),
-      poller_(std::make_unique<Poller>()) {
+      poller_(std::make_unique<Poller>()),
+      wakeup_fd_(::eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC)),
+      wakeup_channel_(std::make_unique<Channel>(this, wakeup_fd_)) {
     if (t_loop_in_this_thread != nullptr) {
         throw std::runtime_error("Another EventLoop exists in this thread");
     }
     t_loop_in_this_thread = this;
+
+    // 监听 wakeup_fd_ 的可读事件
+    wakeup_channel_->setReadCallback([this]() { handleRead(); });
+    wakeup_channel_->enableReading();
 }
 
 EventLoop::~EventLoop() {
     assert(!looping_);
+    wakeup_channel_->disableAll();
+    wakeup_channel_->remove();
+    ::close(wakeup_fd_);
     t_loop_in_this_thread = nullptr;
 }
 
@@ -50,6 +60,9 @@ void EventLoop::loop() {
 
 void EventLoop::quit() {
     quit_ = true;
+    if (!isInLoopThread()) {
+        wakeup();
+    }
 }
 
 void EventLoop::updateChannel(Channel* channel) {
@@ -66,6 +79,10 @@ void EventLoop::queueInLoop(Functor cb) {
     {
         std::lock_guard<std::mutex> lock(mutex_);
         pending_functors_.push_back(std::move(cb));
+    }
+    // 如果从其他线程调用，需要唤醒 epoll
+    if (!isInLoopThread()) {
+        wakeup();
     }
 }
 
@@ -88,6 +105,18 @@ void EventLoop::assertInLoopThread() const {
 
 bool EventLoop::isInLoopThread() const {
     return thread_id_ == ::gettid();
+}
+
+void EventLoop::wakeup() {
+    uint64_t one = 1;
+    ssize_t n = ::write(wakeup_fd_, &one, sizeof(one));
+    (void)n;
+}
+
+void EventLoop::handleRead() {
+    uint64_t one = 0;
+    ssize_t n = ::read(wakeup_fd_, &one, sizeof(one));
+    (void)n;
 }
 
 }  // namespace httpserver
