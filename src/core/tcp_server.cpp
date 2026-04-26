@@ -6,13 +6,15 @@
 
 #include "core/acceptor.h"
 #include "core/event_loop.h"
+#include "core/event_loop_thread_pool.h"
 #include "core/tcp_connection.h"
 
 namespace httpserver {
 
 TcpServer::TcpServer(EventLoop* loop, const InetAddress& listen_addr)
     : loop_(loop),
-      acceptor_(std::make_unique<Acceptor>(loop, listen_addr)) {
+      acceptor_(std::make_unique<Acceptor>(loop, listen_addr)),
+      thread_pool_(std::make_unique<EventLoopThreadPool>(loop)) {
     acceptor_->setNewConnectionCallback(
         [this](int sockfd, const InetAddress& peer_addr) {
             newConnection(sockfd, peer_addr);
@@ -21,7 +23,12 @@ TcpServer::TcpServer(EventLoop* loop, const InetAddress& listen_addr)
 
 TcpServer::~TcpServer() = default;
 
+void TcpServer::setThreadNum(int num_threads) {
+    thread_pool_->setThreadNum(num_threads);
+}
+
 void TcpServer::start() {
+    thread_pool_->start();
     acceptor_->listen();
 }
 
@@ -34,35 +41,38 @@ void TcpServer::setMessageCallback(MessageCallback cb) {
 }
 
 void TcpServer::newConnection(int sockfd, const InetAddress& peer_addr) {
-    // 生成连接名：ip:port
-    std::string name = peer_addr.ipPort();
+    // 从线程池获取一个 SubLoop
+    EventLoop* io_loop = thread_pool_->getNextLoop();
 
-    // 本地地址（TcpConnection 要求传入，当前实现未使用）
+    std::string name = peer_addr.ipPort();
     InetAddress local_addr;
 
-    auto conn = std::make_shared<TcpConnection>(loop_, sockfd, local_addr, peer_addr);
+    auto conn = std::make_shared<TcpConnection>(io_loop, sockfd, local_addr, peer_addr);
     connections_[name] = conn;
 
     conn->setMessageCallback(message_callback_);
     conn->setCloseCallback(
         [this](const TcpConnectionPtr& c) { removeConnection(c); });
 
-    // 通知上层新连接建立（如 HttpServer 在此绑定 HttpContext）
+    // 通知上层新连接建立（如 HttpServer 绑定 HttpContext）
     if (connection_callback_) {
         connection_callback_(conn);
     }
 
-    conn->connectEstablished();
+    // 在 SubLoop 线程中完成连接建立（注册 Channel 到 SubLoop 的 Poller）
+    io_loop->queueInLoop([conn]() { conn->connectEstablished(); });
 }
 
 void TcpServer::removeConnection(const TcpConnectionPtr& conn) {
-    // 延后销毁，避免回调执行到一半对象被 erase
-    loop_->queueInLoop([this, conn]() { destroyConnection(conn); });
-}
+    EventLoop* io_loop = conn->getLoop();
 
-void TcpServer::destroyConnection(const TcpConnectionPtr& conn) {
-    connections_.erase(conn->name());
-    conn->connectDestroyed();
+    // 从 MainLoop 的 connections_ 字典中移除（线程安全：queueInLoop 到 MainLoop）
+    loop_->queueInLoop([this, conn]() {
+        connections_.erase(conn->name());
+    });
+
+    // 在 SubLoop 线程中销毁连接（关闭 Channel、释放 fd）
+    io_loop->queueInLoop([conn]() { conn->connectDestroyed(); });
 }
 
 }  // namespace httpserver

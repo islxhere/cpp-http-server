@@ -21,6 +21,10 @@ HttpServer::HttpServer(EventLoop* loop, const InetAddress& listen_addr)
 
 HttpServer::~HttpServer() = default;
 
+void HttpServer::setThreadNum(int num_threads) {
+    server_->setThreadNum(num_threads);
+}
+
 void HttpServer::start() { server_->start(); }
 
 void HttpServer::setHttpCallback(const HttpCallback& cb) {

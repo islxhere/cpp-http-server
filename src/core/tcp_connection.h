@@ -45,6 +45,7 @@ public:
     void connectDestroyed();
 
     const std::string& name() const;
+    EventLoop* getLoop() const;
     Buffer* inputBuffer();
     Buffer* outputBuffer();
     int fd() const;

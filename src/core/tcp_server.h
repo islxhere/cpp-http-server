@@ -1,8 +1,8 @@
 #pragma once
 
-// TcpServer — 服务端 TCP 服务器。
-// 管理 Acceptor 和所有 TcpConnection 的生命周期。
-// 用户通过设置 ConnectionCallback 和 MessageCallback 来处理业务逻辑。
+// TcpServer — 服务端 TCP 服务器（主从 Reactor 架构）。
+// 管理 Acceptor（MainLoop）和所有 TcpConnection（SubLoop）的生命周期。
+// 新连接通过 EventLoopThreadPool 分配到 SubLoop 线程处理。
 
 #include <functional>
 #include <memory>
@@ -16,6 +16,7 @@ namespace httpserver {
 class EventLoop;
 class Acceptor;
 class TcpConnection;
+class EventLoopThreadPool;
 class Buffer;
 
 class TcpServer {
@@ -30,6 +31,7 @@ public:
     TcpServer(const TcpServer&) = delete;
     TcpServer& operator=(const TcpServer&) = delete;
 
+    void setThreadNum(int num_threads);
     void start();
 
     void setConnectionCallback(ConnectionCallback cb);
@@ -38,10 +40,10 @@ public:
 private:
     void newConnection(int sockfd, const InetAddress& peer_addr);
     void removeConnection(const TcpConnectionPtr& conn);
-    void destroyConnection(const TcpConnectionPtr& conn);
 
     EventLoop* loop_;
     std::unique_ptr<Acceptor> acceptor_;
+    std::unique_ptr<EventLoopThreadPool> thread_pool_;
     std::unordered_map<std::string, TcpConnectionPtr> connections_;
 
     ConnectionCallback connection_callback_;

@@ -88,6 +88,7 @@ Buffer* TcpConnection::inputBuffer() { return &input_buffer_; }
 Buffer* TcpConnection::outputBuffer() { return &output_buffer_; }
 int TcpConnection::fd() const { return conn_fd_; }
 const std::string& TcpConnection::name() const { return name_; }
+EventLoop* TcpConnection::getLoop() const { return loop_; }
 
 void TcpConnection::handleRead() {
     int saved_errno = 0;

@@ -28,6 +28,7 @@ public:
     HttpServer(const HttpServer&) = delete;
     HttpServer& operator=(const HttpServer&) = delete;
 
+    void setThreadNum(int num_threads);
     void start();
     void setHttpCallback(const HttpCallback& cb);
 
