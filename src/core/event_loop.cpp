@@ -60,9 +60,7 @@ void EventLoop::loop() {
 
 void EventLoop::quit() {
     quit_ = true;
-    if (!isInLoopThread()) {
-        wakeup();
-    }
+    wakeup();
 }
 
 void EventLoop::updateChannel(Channel* channel) {
@@ -80,10 +78,9 @@ void EventLoop::queueInLoop(Functor cb) {
         std::lock_guard<std::mutex> lock(mutex_);
         pending_functors_.push_back(std::move(cb));
     }
-    // 如果从其他线程调用，需要唤醒 epoll
-    if (!isInLoopThread()) {
-        wakeup();
-    }
+    // 总是唤醒 epoll，确保 pending functor 及时执行。
+    // 即使从 loop 线程调用，也可能在 poll() 阻塞期间排队。
+    wakeup();
 }
 
 void EventLoop::doPendingFunctors() {
