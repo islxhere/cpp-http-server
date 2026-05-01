@@ -2,6 +2,7 @@
 
 #include <unistd.h>
 
+#include <chrono>
 #include <sstream>
 
 #include "core/acceptor.h"
@@ -30,6 +31,15 @@ void TcpServer::setThreadNum(int num_threads) {
 void TcpServer::start() {
     thread_pool_->start();
     acceptor_->listen();
+
+    // 每秒检测一次空闲连接
+    if (idle_timeout_ms_ > 0) {
+        loop_->runEvery(1.0, [this]() { checkIdleConnections(); });
+    }
+}
+
+void TcpServer::setIdleTimeout(int timeout_ms) {
+    idle_timeout_ms_ = timeout_ms;
 }
 
 void TcpServer::setConnectionCallback(ConnectionCallback cb) {
@@ -73,6 +83,23 @@ void TcpServer::removeConnection(const TcpConnectionPtr& conn) {
 
     // 在 SubLoop 线程中销毁连接（关闭 Channel、释放 fd）
     io_loop->queueInLoop([conn]() { conn->connectDestroyed(); });
+}
+
+void TcpServer::checkIdleConnections() {
+    auto now = TcpConnection::Clock::now();
+    auto timeout = std::chrono::milliseconds(idle_timeout_ms_);
+
+    // 先收集需要关闭的连接，避免在遍历中修改 map
+    std::vector<TcpConnectionPtr> idle_conns;
+    for (auto& [name, conn] : connections_) {
+        if (now - conn->lastActiveTime() > timeout) {
+            idle_conns.push_back(conn);
+        }
+    }
+
+    for (auto& conn : idle_conns) {
+        conn->forceClose();
+    }
 }
 
 }  // namespace httpserver

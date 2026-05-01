@@ -17,7 +17,8 @@ TcpConnection::TcpConnection(EventLoop* loop, int conn_fd,
     : loop_(loop),
       conn_fd_(conn_fd),
       name_(peer_addr.ipPort()),
-      channel_(std::make_unique<Channel>(loop, conn_fd)) {
+      channel_(std::make_unique<Channel>(loop, conn_fd)),
+      last_active_time_(Clock::now()) {
     channel_->setReadCallback([this]() { handleRead(); });
     channel_->setWriteCallback([this]() { handleWrite(); });
     channel_->setCloseCallback([this]() { handleClose(); });
@@ -39,6 +40,7 @@ void TcpConnection::setWriteCompleteCallback(WriteCompleteCallback cb) {
 }
 
 void TcpConnection::send(const std::string& message) {
+    last_active_time_ = Clock::now();
     ssize_t nwrote = 0;
     size_t remaining = message.size();
 
@@ -71,10 +73,17 @@ void TcpConnection::shutdown() {
 }
 
 void TcpConnection::forceClose() {
-    handleClose();
+    if (loop_->isInLoopThread()) {
+        handleClose();
+    } else {
+        loop_->queueInLoop([self = shared_from_this()]() {
+            self->handleClose();
+        });
+    }
 }
 
 void TcpConnection::connectEstablished() {
+    last_active_time_ = Clock::now();
     channel_->enableReading();
 }
 
@@ -94,6 +103,7 @@ void TcpConnection::handleRead() {
     int saved_errno = 0;
     ssize_t n = input_buffer_.readFd(conn_fd_, &saved_errno);
     if (n > 0) {
+        last_active_time_ = Clock::now();
         if (message_callback_) {
             message_callback_(shared_from_this(), &input_buffer_);
         }
@@ -144,6 +154,10 @@ const std::any& TcpConnection::getContext() const {
 
 std::any& TcpConnection::mutableContext() {
     return context_;
+}
+
+TcpConnection::Clock::time_point TcpConnection::lastActiveTime() const {
+    return last_active_time_;
 }
 
 }  // namespace httpserver

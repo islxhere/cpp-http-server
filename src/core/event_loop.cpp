@@ -7,6 +7,8 @@
 #include <sys/eventfd.h>
 
 #include "core/poller.h"
+#include "utils/timer.h"
+#include "utils/timer_queue.h"
 
 namespace httpserver {
 
@@ -18,6 +20,7 @@ EventLoop::EventLoop()
       quit_(false),
       thread_id_(::gettid()),
       poller_(std::make_unique<Poller>()),
+      timer_queue_(std::make_unique<TimerQueue>(this)),
       wakeup_fd_(::eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC)),
       wakeup_channel_(std::make_unique<Channel>(this, wakeup_fd_)) {
     if (t_loop_in_this_thread != nullptr) {
@@ -114,6 +117,24 @@ void EventLoop::handleRead() {
     uint64_t one = 0;
     ssize_t n = ::read(wakeup_fd_, &one, sizeof(one));
     (void)n;
+}
+
+void EventLoop::runAt(std::chrono::steady_clock::time_point time, TimerCallback cb) {
+    auto* timer = new Timer(std::move(cb), time);
+    timer_queue_->addTimer(timer);
+}
+
+void EventLoop::runAfter(double delay_seconds, TimerCallback cb) {
+    auto time = std::chrono::steady_clock::now() +
+                std::chrono::microseconds(static_cast<int64_t>(delay_seconds * 1000000));
+    runAt(time, std::move(cb));
+}
+
+void EventLoop::runEvery(double interval_seconds, TimerCallback cb) {
+    auto time = std::chrono::steady_clock::now() +
+                std::chrono::microseconds(static_cast<int64_t>(interval_seconds * 1000000));
+    auto* timer = new Timer(std::move(cb), time, interval_seconds);
+    timer_queue_->addTimer(timer);
 }
 
 }  // namespace httpserver

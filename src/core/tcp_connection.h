@@ -5,6 +5,7 @@
 // 内部持有 Channel 监听读写事件，以及输入输出 Buffer。
 
 #include <any>
+#include <chrono>
 #include <functional>
 #include <memory>
 #include <string>
@@ -55,6 +56,10 @@ public:
     const std::any& getContext() const;
     std::any& mutableContext();
 
+    // 最近活跃时间（用于空闲连接检测）
+    using Clock = std::chrono::steady_clock;
+    Clock::time_point lastActiveTime() const;
+
 private:
     void handleRead();
     void handleWrite();
@@ -72,6 +77,7 @@ private:
     CloseCallback close_callback_;
     WriteCompleteCallback write_complete_callback_;
     std::any context_;
+    Clock::time_point last_active_time_;
 };
 
 }  // namespace httpserver

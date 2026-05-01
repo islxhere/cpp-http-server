@@ -37,9 +37,13 @@ public:
     void setConnectionCallback(ConnectionCallback cb);
     void setMessageCallback(MessageCallback cb);
 
+    // 空闲连接超时（毫秒），默认 8000ms，0 表示不检测
+    void setIdleTimeout(int timeout_ms);
+
 private:
     void newConnection(int sockfd, const InetAddress& peer_addr);
     void removeConnection(const TcpConnectionPtr& conn);
+    void checkIdleConnections();
 
     EventLoop* loop_;
     std::unique_ptr<Acceptor> acceptor_;
@@ -48,6 +52,7 @@ private:
 
     ConnectionCallback connection_callback_;
     MessageCallback message_callback_;
+    int idle_timeout_ms_ = 8000;
 };
 
 }  // namespace httpserver

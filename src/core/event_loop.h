@@ -7,6 +7,7 @@
 #include <sys/types.h>
 
 #include <atomic>
+#include <chrono>
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -18,6 +19,8 @@ namespace httpserver {
 
 class Channel;
 class Poller;
+class TimerQueue;
+class Timer;
 
 class EventLoop {
 public:
@@ -50,6 +53,12 @@ public:
 
     bool isInLoopThread() const;
 
+    // 定时器便捷方法
+    using TimerCallback = std::function<void()>;
+    void runAt(std::chrono::steady_clock::time_point time, TimerCallback cb);
+    void runAfter(double delay_seconds, TimerCallback cb);
+    void runEvery(double interval_seconds, TimerCallback cb);
+
 private:
     void doPendingFunctors();
     void handleRead();       // 读取 wakeup_fd_ 唤醒 epoll
@@ -61,6 +70,8 @@ private:
 
     std::unique_ptr<Poller> poller_;
     ChannelList active_channels_;
+
+    std::unique_ptr<TimerQueue> timer_queue_;
 
     int wakeup_fd_;                              // eventfd，用于跨线程唤醒
     std::unique_ptr<Channel> wakeup_channel_;    // 监听 wakeup_fd_
