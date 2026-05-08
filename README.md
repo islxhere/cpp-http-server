@@ -1,5 +1,7 @@
 # High-Performance HTTP/1.1 Server
 
+English | [中文](README_zh-CN.md)
+
 A high-performance HTTP/1.1 server built from scratch in C++17 on Linux, using only system calls (epoll / socket / timerfd) with zero third-party network library dependencies.
 
 Inspired by [muduo](https://github.com/chenshuo/muduo) (by Chen Shuo), implementing a **Main-Sub Reactor** multi-threaded architecture.
