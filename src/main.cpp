@@ -10,15 +10,20 @@
 #include "http/http_server.h"
 #include "utils/logger.h"
 
-int main() {
+int main(int argc, char* argv[]) {
+    int threads = 4;
+    if (argc > 1) {
+        threads = std::stoi(argv[1]);
+    }
+
     httpserver::Logger::instance().init("/tmp/httpserver.log");
-    LOG_INFO << "HTTP Server starting on port 8080...";
+    LOG_INFO << "HTTP Server starting on port 8080 with " << threads << " worker threads";
 
     httpserver::EventLoop loop;
     httpserver::InetAddress listen_addr(8080);
     httpserver::HttpServer server(&loop, listen_addr);
 
-    server.setThreadNum(4);
+    server.setThreadNum(threads);
 
     server.setHttpCallback(
         [](const httpserver::HttpRequest& req, httpserver::HttpResponse* resp) {
@@ -40,7 +45,7 @@ int main() {
         });
 
     server.start();
-    LOG_INFO << "HTTP Server is running on http://127.0.0.1:8080 with 4 worker threads";
+    LOG_INFO << "HTTP Server is running on http://127.0.0.1:8080";
     loop.loop();
 
     httpserver::Logger::instance().stop();

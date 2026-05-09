@@ -248,6 +248,36 @@ Detailed development logs for each phase are available in the `docs/` directory:
 | tests/ | 13 | ~1,549 |
 | **Total** | **50** | **~4,358** |
 
+## Benchmark
+
+Test environment: Linux 6.8.0 / 4 CPU cores / wrk 4.1.0 / 10s per test
+
+### QPS Comparison
+
+| Connections | 1 Thread | 4 Threads | Speedup |
+|-------------|----------|-----------|---------|
+| 100 | 77,761 req/s | 147,166 req/s | **+89%** |
+| 500 | 69,520 req/s | 138,166 req/s | **+99%** |
+| 1000 | 54,931 req/s | 122,764 req/s | **+123%** |
+
+### Latency Comparison
+
+| Connections | 1 Thread (avg) | 4 Threads (avg) |
+|-------------|----------------|-----------------|
+| 100 | 1.28 ms | 0.96 ms |
+| 500 | 7.15 ms | 3.90 ms |
+| 1000 | 18.10 ms | 8.39 ms |
+
+### Throughput Comparison
+
+| Connections | 1 Thread | 4 Threads |
+|-------------|----------|-----------|
+| 100 | 9.49 MB/s | 17.96 MB/s |
+| 500 | 8.49 MB/s | 16.87 MB/s |
+| 1000 | 6.71 MB/s | 14.99 MB/s |
+
+> For interactive charts, open [docs/benchmark.html](docs/benchmark.html) in a browser.
+
 ## License
 
 This project is for educational purposes.

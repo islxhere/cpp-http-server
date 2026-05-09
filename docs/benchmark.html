@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>HTTP Server Benchmark — 单线程 vs 4线程</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, "Segoe UI", Roboto, sans-serif; background: #f5f7fa; color: #333; padding: 40px 20px; }
+        .container { max-width: 960px; margin: 0 auto; }
+        h1 { text-align: center; margin-bottom: 8px; font-size: 28px; }
+        .subtitle { text-align: center; color: #666; margin-bottom: 40px; font-size: 15px; }
+        .chart-box { background: #fff; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); padding: 32px; margin-bottom: 32px; }
+        .chart-box h2 { margin-bottom: 20px; font-size: 20px; color: #222; }
+        .chart-row { display: flex; gap: 32px; flex-wrap: wrap; }
+        .chart-row .chart-box { flex: 1; min-width: 400px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 24px; }
+        th, td { padding: 12px 16px; text-align: center; border-bottom: 1px solid #eee; }
+        th { background: #f8f9fb; font-weight: 600; color: #555; }
+        td { font-size: 15px; }
+        .highlight { color: #2563eb; font-weight: 600; }
+        .tag { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+        .tag-1t { background: #dbeafe; color: #2563eb; }
+        .tag-4t { background: #dcfce7; color: #16a34a; }
+        .speedup { color: #f59e0b; font-weight: 700; }
+        footer { text-align: center; color: #999; font-size: 13px; margin-top: 40px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>HTTP Server Benchmark</h1>
+    <p class="subtitle">wrk 压力测试 — 单线程 vs 4线程 &nbsp;|&nbsp; 4 CPU Cores &nbsp;|&nbsp; 10s per test</p>
+
+    <!-- QPS 对比图 -->
+    <div class="chart-box">
+        <h2>Requests/sec (QPS) 对比</h2>
+        <canvas id="qpsChart" height="100"></canvas>
+    </div>
+
+    <div class="chart-row">
+        <!-- 延迟对比图 -->
+        <div class="chart-box">
+            <h2>Average Latency (ms)</h2>
+            <canvas id="latencyChart" height="160"></canvas>
+        </div>
+        <!-- 吞吐量对比图 -->
+        <div class="chart-box">
+            <h2>Transfer/sec (MB)</h2>
+            <canvas id="throughputChart" height="160"></canvas>
+        </div>
+    </div>
+
+    <!-- 数据表格 -->
+    <div class="chart-box">
+        <h2>详细数据</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>线程数</th>
+                    <th>并发连接</th>
+                    <th>QPS</th>
+                    <th>Avg Latency</th>
+                    <th>Transfer/sec</th>
+                    <th>提升</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><span class="tag tag-1t">1 Thread</span></td>
+                    <td>100</td>
+                    <td>77,761</td>
+                    <td>1.28 ms</td>
+                    <td>9.49 MB</td>
+                    <td>—</td>
+                </tr>
+                <tr>
+                    <td><span class="tag tag-4t">4 Threads</span></td>
+                    <td>100</td>
+                    <td class="highlight">147,166</td>
+                    <td>0.96 ms</td>
+                    <td>17.96 MB</td>
+                    <td class="speedup">+89%</td>
+                </tr>
+                <tr>
+                    <td><span class="tag tag-1t">1 Thread</span></td>
+                    <td>500</td>
+                    <td>69,520</td>
+                    <td>7.15 ms</td>
+                    <td>8.49 MB</td>
+                    <td>—</td>
+                </tr>
+                <tr>
+                    <td><span class="tag tag-4t">4 Threads</span></td>
+                    <td>500</td>
+                    <td class="highlight">138,166</td>
+                    <td>3.90 ms</td>
+                    <td>16.87 MB</td>
+                    <td class="speedup">+99%</td>
+                </tr>
+                <tr>
+                    <td><span class="tag tag-1t">1 Thread</span></td>
+                    <td>1000</td>
+                    <td>54,931</td>
+                    <td>18.10 ms</td>
+                    <td>6.71 MB</td>
+                    <td>—</td>
+                </tr>
+                <tr>
+                    <td><span class="tag tag-4t">4 Threads</span></td>
+                    <td>1000</td>
+                    <td class="highlight">122,764</td>
+                    <td>8.39 ms</td>
+                    <td>14.99 MB</td>
+                    <td class="speedup">+123%</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <footer>Benchmark performed on Linux 6.8.0 &nbsp;|&nbsp; 4 CPU cores &nbsp;|&nbsp; wrk 4.1.0 &nbsp;|&nbsp; 2026-05-02</footer>
+</div>
+
+<script>
+const labels = ['100 Connections', '500 Connections', '1000 Connections'];
+const qps1t = [77761, 69520, 54931];
+const qps4t = [147166, 138166, 122764];
+const lat1t = [1.28, 7.15, 18.10];
+const lat4t = [0.96, 3.90, 8.39];
+const tp1t  = [9.49, 8.49, 6.71];
+const tp4t  = [17.96, 16.87, 14.99];
+
+const blue1 = 'rgba(37, 99, 235, 0.8)';
+const blue2 = 'rgba(37, 99, 235, 0.15)';
+const green1 = 'rgba(22, 163, 74, 0.8)';
+const green2 = 'rgba(22, 163, 74, 0.15)';
+
+// QPS Bar Chart
+new Chart(document.getElementById('qpsChart'), {
+    type: 'bar',
+    data: {
+        labels,
+        datasets: [
+            { label: '1 Thread', data: qps1t, backgroundColor: blue1, borderColor: blue1, borderWidth: 1, borderRadius: 6 },
+            { label: '4 Threads', data: qps4t, backgroundColor: green1, borderColor: green1, borderWidth: 1, borderRadius: 6 },
+        ]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { position: 'top' },
+            tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': ' + ctx.raw.toLocaleString() + ' req/s' } }
+        },
+        scales: {
+            y: { beginAtZero: true, ticks: { callback: v => (v/1000) + 'k' }, title: { display: true, text: 'Requests/sec' } }
+        }
+    }
+});
+
+// Latency Bar Chart
+new Chart(document.getElementById('latencyChart'), {
+    type: 'bar',
+    data: {
+        labels,
+        datasets: [
+            { label: '1 Thread', data: lat1t, backgroundColor: blue1, borderColor: blue1, borderWidth: 1, borderRadius: 6 },
+            { label: '4 Threads', data: lat4t, backgroundColor: green1, borderColor: green1, borderWidth: 1, borderRadius: 6 },
+        ]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { position: 'top' } },
+        scales: {
+            y: { beginAtZero: true, title: { display: true, text: 'ms' } }
+        }
+    }
+});
+
+// Throughput Bar Chart
+new Chart(document.getElementById('throughputChart'), {
+    type: 'bar',
+    data: {
+        labels,
+        datasets: [
+            { label: '1 Thread', data: tp1t, backgroundColor: blue1, borderColor: blue1, borderWidth: 1, borderRadius: 6 },
+            { label: '4 Threads', data: tp4t, backgroundColor: green1, borderColor: green1, borderWidth: 1, borderRadius: 6 },
+        ]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { position: 'top' } },
+        scales: {
+            y: { beginAtZero: true, title: { display: true, text: 'MB/s' } }
+        }
+    }
+});
+</script>
+</body>
+</html>
