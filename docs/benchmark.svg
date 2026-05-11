@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="780" height="470" font-family="sans-serif">
+<rect width="780" height="470" fill="#fff" rx="12"/>
+<text x="390" y="35" text-anchor="middle" font-size="18" font-weight="bold" fill="#222">QPS: Single Thread vs 4 Threads</text>
+<text x="70" y="414.0" text-anchor="end" font-size="12" fill="#888">0k</text>
+<line x1="80" y1="410.0" x2="760" y2="410.0" stroke="#eee" stroke-width="1"/>
+<text x="70" y="326.5" text-anchor="end" font-size="12" fill="#888">40k</text>
+<line x1="80" y1="322.5" x2="760" y2="322.5" stroke="#eee" stroke-width="1"/>
+<text x="70" y="239.0" text-anchor="end" font-size="12" fill="#888">80k</text>
+<line x1="80" y1="235.0" x2="760" y2="235.0" stroke="#eee" stroke-width="1"/>
+<text x="70" y="151.5" text-anchor="end" font-size="12" fill="#888">120k</text>
+<line x1="80" y1="147.5" x2="760" y2="147.5" stroke="#eee" stroke-width="1"/>
+<text x="70" y="64.0" text-anchor="end" font-size="12" fill="#888">160k</text>
+<line x1="80" y1="60.0" x2="760" y2="60.0" stroke="#eee" stroke-width="1"/>
+<rect x="110" y="239.89781250000001" width="70" height="170.10218749999999" fill="#3b82f6" rx="4"/>
+<text x="145" y="233.89781250000001" text-anchor="middle" font-size="11" font-weight="bold" fill="#3b82f6">77,761</text>
+<rect x="200" y="88.07437500000003" width="70" height="321.92562499999997" fill="#22c55e" rx="4"/>
+<text x="235" y="82.07437500000003" text-anchor="middle" font-size="11" font-weight="bold" fill="#22c55e">147,166</text>
+<text x="190" y="435" text-anchor="middle" font-size="13" fill="#555">100 conn</text>
+<text x="190" y="453" text-anchor="middle" font-size="12" fill="#f59e0b" font-weight="bold">+89%</text>
+<rect x="330" y="257.925" width="70" height="152.075" fill="#3b82f6" rx="4"/>
+<text x="365" y="251.925" text-anchor="middle" font-size="11" font-weight="bold" fill="#3b82f6">69,520</text>
+<rect x="420" y="107.76187500000003" width="70" height="302.23812499999997" fill="#22c55e" rx="4"/>
+<text x="455" y="101.76187500000003" text-anchor="middle" font-size="11" font-weight="bold" fill="#22c55e">138,166</text>
+<text x="410" y="435" text-anchor="middle" font-size="13" fill="#555">500 conn</text>
+<text x="410" y="453" text-anchor="middle" font-size="12" fill="#f59e0b" font-weight="bold">+98%</text>
+<rect x="550" y="289.8384375" width="70" height="120.1615625" fill="#3b82f6" rx="4"/>
+<text x="585" y="283.8384375" text-anchor="middle" font-size="11" font-weight="bold" fill="#3b82f6">54,931</text>
+<rect x="640" y="141.45375" width="70" height="268.54625" fill="#22c55e" rx="4"/>
+<text x="675" y="135.45375" text-anchor="middle" font-size="11" font-weight="bold" fill="#22c55e">122,764</text>
+<text x="630" y="435" text-anchor="middle" font-size="13" fill="#555">1000 conn</text>
+<text x="630" y="453" text-anchor="middle" font-size="12" fill="#f59e0b" font-weight="bold">+123%</text>
+<rect x="580" y="40" width="14" height="14" fill="#3b82f6" rx="3"/>
+<text x="600" y="52" font-size="12" fill="#555">1 Thread</text>
+<rect x="670" y="40" width="14" height="14" fill="#22c55e" rx="3"/>
+<text x="690" y="52" font-size="12" fill="#555">4 Threads</text>
+</svg>

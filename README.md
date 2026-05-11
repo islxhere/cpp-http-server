@@ -252,6 +252,8 @@ Detailed development logs for each phase are available in the `docs/` directory:
 
 Test environment: Linux 6.8.0 / 4 CPU cores / wrk 4.1.0 / 10s per test
 
+![QPS Benchmark](docs/benchmark.svg)
+
 ### QPS Comparison
 
 | Connections | 1 Thread | 4 Threads | Speedup |
