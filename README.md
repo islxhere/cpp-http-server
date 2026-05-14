@@ -1,84 +1,85 @@
-# High-Performance HTTP/1.1 Server
+# 高性能 HTTP/1.1 服务器
 
-English | [中文](README_zh-CN.md)
+[English](README_en.md) | 中文
 
-A high-performance HTTP/1.1 server built from scratch in C++17 on Linux, using only system calls (epoll / socket / timerfd) with zero third-party network library dependencies.
+一个用 C++17 从零实现的高性能 HTTP/1.1 服务器，仅使用 Linux 系统调用（epoll / socket / timerfd），无任何第三方网络库依赖。
 
-Inspired by [muduo](https://github.com/chenshuo/muduo) (by Chen Shuo), implementing a **Main-Sub Reactor** multi-threaded architecture.
+受 [muduo](https://github.com/chenshuo/muduo)（陈硕）启发，采用**主从 Reactor** 多线程架构。
 
-## Features
+## 特性
 
-- **Main-Sub Reactor Architecture** — MainLoop accepts connections, SubLoop(s) handle all IO
-- **epoll (ET mode)** — Edge-triggered epoll for minimal system call overhead
-- **Multi-threaded** — Configurable worker thread pool, round-robin connection distribution
-- **HTTP/1.1 Parsing** — State machine parser supporting half-packet / sticky-packet scenarios
-- **Async Logging** — Double-buffered background thread logging with log-level filtering
-- **Idle Connection Timeout** — Periodic detection and automatic cleanup of idle connections
-- **Timer System** — timerfd-based timer queue, integrated into the event loop
-- **Zero External Dependencies** — Only Linux system calls + C++17 standard library (Google Test for testing)
+- **主从 Reactor 架构** — MainLoop 负责 accept，SubLoop 处理所有 IO
+- **epoll（ET 模式）** — 边缘触发，减少系统调用开销
+- **多线程** — 可配置工作线程数，Round-Robin 连接分发
+- **HTTP/1.1 解析** — 状态机解析器，支持半包/粘包场景
+- **异步日志** — 双缓冲后台线程写入，支持日志级别过滤
+- **空闲连接超时** — 周期检测并自动清理空闲连接
+- **定时器系统** — 基于 timerfd 的定时器队列，集成到事件循环
+- **零外部依赖** — 仅 Linux 系统调用 + C++17 标准库（测试使用 Google Test）
 
-## Architecture
+## 架构
 
 ```
 ┌─────────────────────────────────────────────┐
 │                  Main Reactor                │
-│   MainLoop (single thread) + Acceptor        │
-│   Listens on port, accepts new connections    │
+│   MainLoop（单线程）+ Acceptor               │
+│   负责监听端口，accept 新连接                  │
 └────────────────┬────────────────────────────┘
-                 │ Round-Robin distribution
+                 │ Round-Robin 分发
     ┌────────────┼────────────┐
     ▼            ▼            ▼
 ┌────────┐  ┌────────┐  ┌────────┐
 │SubLoop1│  │SubLoop2│  │SubLoop3│   Sub Reactors
-│(Thread1│  │(Thread2│  │(Thread3│   One EventLoop per thread
+│（线程1）│  │（线程2）│  │（线程3）│   每个线程一个 EventLoop
 └────┬───┘  └───┬────┘  └───┬────┘
      │          │            │
   Connection Connection  Connection
-  HTTP Parse  HTTP Parse  HTTP Parse
-  Read/Write  Read/Write  Read/Write
+  HTTP解析    HTTP解析    HTTP解析
+  读/写       读/写       读/写
 ```
 
-## Project Structure
+## 目录结构
 
 ```
 http-server/
 ├── CMakeLists.txt
 ├── README.md
-├── DESIGN.md                      # Detailed design document
+├── README_en.md                   # English documentation
+├── DESIGN.md                      # 详细设计文档
 ├── docs/
-│   ├── phase1_log.md              # Phase 1: Single-threaded Reactor
-│   ├── phase2_log.md              # Phase 2: HTTP Protocol Layer
-│   ├── phase3_log.md              # Phase 3: Multi-threaded Reactor
-│   └── phase4_log.md              # Phase 4: Stability & Observability
+│   ├── phase1_log.md              # 阶段一：单线程 Reactor
+│   ├── phase2_log.md              # 阶段二：HTTP 协议层
+│   ├── phase3_log.md              # 阶段三：多线程 Reactor
+│   └── phase4_log.md              # 阶段四：稳定性与可观测性
 │
 ├── src/
-│   ├── core/                      # Network Layer
-│   │   ├── inet_address.h/cpp     # sockaddr_in wrapper
-│   │   ├── buffer.h/cpp           # Application-layer read/write buffer (muduo-style)
-│   │   ├── poller.h/cpp           # epoll wrapper
-│   │   ├── channel.h/cpp          # fd event dispatcher
-│   │   ├── event_loop.h/cpp       # Reactor core event loop
-│   │   ├── acceptor.h/cpp         # Port listener, accepts new connections
-│   │   ├── tcp_connection.h/cpp   # TCP connection management
-│   │   ├── tcp_server.h/cpp       # Server entry point (Main-Sub Reactor)
-│   │   ├── event_loop_thread.h/cpp       # Runs EventLoop in a separate thread
-│   │   └── event_loop_thread_pool.h/cpp  # Sub Reactor thread pool
+│   ├── core/                      # 网络层
+│   │   ├── inet_address.h/cpp     # sockaddr_in 封装
+│   │   ├── buffer.h/cpp           # 应用层读写缓冲区（muduo 风格）
+│   │   ├── poller.h/cpp           # epoll 封装
+│   │   ├── channel.h/cpp          # fd 事件分发器
+│   │   ├── event_loop.h/cpp       # Reactor 核心事件循环
+│   │   ├── acceptor.h/cpp         # 端口监听器，接受新连接
+│   │   ├── tcp_connection.h/cpp   # TCP 连接管理
+│   │   ├── tcp_server.h/cpp       # 服务端入口（主从 Reactor）
+│   │   ├── event_loop_thread.h/cpp       # 独立线程运行 EventLoop
+│   │   └── event_loop_thread_pool.h/cpp  # Sub Reactor 线程池
 │   │
-│   ├── http/                      # HTTP Layer
-│   │   ├── http_request.h/cpp     # HTTP request data model
-│   │   ├── http_response.h/cpp    # HTTP response builder & serializer
-│   │   ├── http_parser.h/cpp      # Stateless request-line & header parser
-│   │   ├── http_context.h/cpp     # Per-connection state machine
-│   │   └── http_server.h/cpp      # HTTP server wrapping TcpServer
+│   ├── http/                      # HTTP 层
+│   │   ├── http_request.h/cpp     # HTTP 请求数据模型
+│   │   ├── http_response.h/cpp    # HTTP 响应构造与序列化
+│   │   ├── http_parser.h/cpp      # 无状态请求行与头部解析器
+│   │   ├── http_context.h/cpp     # 每连接状态机
+│   │   └── http_server.h/cpp      # HTTP 服务器，封装 TcpServer
 │   │
-│   ├── utils/                     # Utilities
-│   │   ├── timer.h/cpp            # Single timer task
-│   │   ├── timer_queue.h/cpp      # Timer management (timerfd-based)
-│   │   └── logger.h/cpp           # Async logging (double-buffered)
+│   ├── utils/                     # 工具层
+│   │   ├── timer.h/cpp            # 单个定时任务
+│   │   ├── timer_queue.h/cpp      # 定时器管理（基于 timerfd）
+│   │   └── logger.h/cpp           # 异步日志（双缓冲）
 │   │
-│   └── main.cpp                   # Entry point
+│   └── main.cpp                   # 入口
 │
-└── tests/                         # Unit Tests (Google Test)
+└── tests/                         # 单元测试（Google Test）
     ├── test_inet_address.cpp
     ├── test_buffer.cpp
     ├── test_poller.cpp
@@ -94,35 +95,35 @@ http-server/
     └── test_logger.cpp
 ```
 
-## Build & Run
+## 构建与运行
 
-### Prerequisites
+### 环境要求
 
-- Linux (kernel 2.6.27+ for `epoll_create1`)
-- GCC 7+ or Clang 5+ (C++17 support)
+- Linux（内核 2.6.27+，需要 `epoll_create1`）
+- GCC 7+ 或 Clang 5+（支持 C++17）
 - CMake 3.16+
-- Google Test (auto-downloaded by CMake if not found)
+- Google Test（未安装时 CMake 自动下载）
 
-### Build
+### 编译
 
 ```bash
-# Clone
+# 克隆
 git clone https://github.com/islxhere/cpp-http-server.git
 cd cpp-http-server
 
-# Build
+# 编译
 mkdir -p build && cd build
 cmake ..
 make -j$(nproc)
 ```
 
-### Run
+### 运行
 
 ```bash
-# Start the HTTP server (port 8080, 4 worker threads)
+# 启动 HTTP 服务器（端口 8080，4 个工作线程）
 ./build/http_server
 
-# Test with curl
+# 用 curl 测试
 curl http://localhost:8080/
 # <h1>Hello! Handled by Thread: 12345</h1>
 
@@ -130,156 +131,156 @@ curl http://localhost:8080/other
 # <h1>404 Not Found</h1>
 ```
 
-### Run Tests
+### 运行测试
 
 ```bash
 cd build
 ./run_tests
 ```
 
-Expected output:
+预期输出：
 
 ```
 [==========] Running 69 tests from 14 test suites.
 [  PASSED  ] 69 tests.
 ```
 
-## Module Design
+## 模块设计
 
-### Network Layer (core/)
+### 网络层（core/）
 
-| Module | Responsibility |
-|--------|---------------|
-| **InetAddress** | Wraps `sockaddr_in`, provides IP + port construction and access |
-| **Buffer** | Muduo-style read/write buffer with `readv` scatter-read and prepend space |
-| **Poller** | Wraps `epoll_create1` / `epoll_ctl` / `epoll_wait`, returns active channels |
-| **Channel** | Manages a single fd, binds read/write/close/error callbacks |
-| **EventLoop** | Drives the event loop: poll -> handleEvent -> doPendingFunctors |
-| **Acceptor** | Listens on port, `accept4()` in a loop, notifies via callback |
-| **TcpConnection** | Represents a TCP connection with input/output buffers and `shared_ptr` lifecycle |
-| **TcpServer** | Manages Acceptor + all connections, distributes to Sub Reactors |
-| **EventLoopThread** | Starts an EventLoop in an independent thread with synchronization |
-| **EventLoopThreadPool** | Manages Sub Reactor threads, round-robin connection distribution |
+| 模块 | 职责 |
+|------|------|
+| **InetAddress** | 封装 `sockaddr_in`，提供 IP + 端口的构造和访问接口 |
+| **Buffer** | muduo 风格读写缓冲区，`readv` 分散读，预留 prepend 空间 |
+| **Poller** | 封装 `epoll_create1` / `epoll_ctl` / `epoll_wait`，返回活跃 Channel |
+| **Channel** | 管理单个 fd，绑定读/写/关闭/错误回调 |
+| **EventLoop** | 驱动事件循环：poll → handleEvent → doPendingFunctors |
+| **Acceptor** | 监听端口，循环 `accept4()`，通过回调通知上层 |
+| **TcpConnection** | 代表一条 TCP 连接，持有输入输出 Buffer，`shared_ptr` 生命周期管理 |
+| **TcpServer** | 管理 Acceptor + 所有连接，分发到 Sub Reactor |
+| **EventLoopThread** | 在独立线程中启动 EventLoop，带同步机制 |
+| **EventLoopThreadPool** | 管理 Sub Reactor 线程池，Round-Robin 连接分发 |
 
-### HTTP Layer (http/)
+### HTTP 层（http/）
 
-| Module | Responsibility |
-|--------|---------------|
-| **HttpRequest** | Stores parsed HTTP request (method, path, query, headers, body) |
-| **HttpResponse** | Constructs HTTP response and serializes to Buffer |
-| **HttpParser** | Stateless static methods: `parseRequestLine()`, `parseHeader()` |
-| **HttpContext** | State machine driving HTTP parsing from Buffer (handles half-packet/sticky-packet) |
-| **HttpServer** | Wraps TcpServer, binds HttpContext per connection via `std::any` |
+| 模块 | 职责 |
+|------|------|
+| **HttpRequest** | 存储解析后的 HTTP 请求（方法、路径、查询、头部、正文） |
+| **HttpResponse** | 构造 HTTP 响应并序列化到 Buffer |
+| **HttpParser** | 无状态静态方法：`parseRequestLine()`、`parseHeader()` |
+| **HttpContext** | 驱动状态机从 Buffer 中解析 HTTP（处理半包/粘包） |
+| **HttpServer** | 封装 TcpServer，通过 `std::any` 为每条连接绑定 HttpContext |
 
-### Utilities (utils/)
+### 工具层（utils/）
 
-| Module | Responsibility |
-|--------|---------------|
-| **Timer** | Single timer task with callback, expiration, and optional repeat interval |
-| **TimerQueue** | Manages all timers using `timerfd`, converts timeout events to epoll-readable events |
-| **Logger** | Async singleton logger with double-buffered background thread writing |
+| 模块 | 职责 |
+|------|------|
+| **Timer** | 单个定时任务，持有回调、过期时间和可选重复间隔 |
+| **TimerQueue** | 使用 `timerfd` 管理所有定时器，将超时事件转化为 epoll 可读事件 |
+| **Logger** | 异步单例日志系统，双缓冲后台线程写入 |
 
-## Key Design Decisions
+## 关键设计决策
 
-### Why `readv` instead of `read`?
+### 为什么用 readv 而不是 read？
 
-Buffer's `readFd()` uses `readv` scatter-read with a 64KB stack buffer. When the Buffer's writable space is insufficient, data is read into the stack buffer first, then appended. This avoids calling `ensureWritableBytes` before every read.
+Buffer 的 `readFd()` 使用 `readv` 分散读，配合栈上 64KB 额外缓冲区。当 Buffer 可写空间不足时，数据先读到栈上缓冲区，再 append 到 Buffer，避免每次 read 前都要 `ensureWritableBytes` 的开销。
 
-### Why `shared_ptr` for TcpConnection?
+### 为什么 TcpConnection 用 shared_ptr？
 
-TCP connection lifecycles are complex: connections may be closed during callbacks, or the peer may disconnect while sending data. `shared_ptr` + `enable_shared_from_this` allows safely passing `shared_from_this()` in callbacks, avoiding dangling pointers.
+TCP 连接的生命周期复杂：可能在回调中被关闭，也可能在发送数据时对端断开。`shared_ptr` + `enable_shared_from_this` 可以安全地在回调中传递 `shared_from_this()`，避免悬垂指针。
 
-### Why timerfd instead of `std::condition_variable::wait_for`?
+### 为什么用 timerfd 而不是 wait_for？
 
-timerfd registers directly with epoll, so timeout events and IO events are handled in the same event loop without needing an additional thread.
+timerfd 可以直接注册到 epoll 中，超时事件和 IO 事件在同一个事件循环中处理，不需要额外的线程。
 
-### Why double-buffered logging?
+### 为什么用双缓冲日志？
 
-The frontend writes to `buffer_` under a lock, then `notify_one()`. The backend thread swaps `buffer_` to a local vector (O(1) pointer swap), immediately releases the lock, then writes to file without holding the lock. This minimizes lock contention and ensures logging never blocks the IO threads.
+前端加锁写入 `buffer_`，然后 `notify_one()`。后台线程将 `buffer_` swap 到局部 vector（O(1) 指针交换），立即释放锁，然后不持有锁地写文件。最大限度减少锁竞争，确保日志不会阻塞 IO 线程。
 
-## Test Coverage
+## 测试覆盖
 
-| Test Suite | Tests | Coverage |
-|-----------|-------|----------|
-| InetAddressTest | 6 | IP/port construction, sockaddr conversion |
-| BufferTest | 11 | Read/write, readfd, prepend, expand |
-| ChannelTest | 10 | Enable/disable events, callback dispatch |
-| PollerTest | 7 | epoll lifecycle, multi-channel |
-| EventLoopTest | 1 | timerfd integration |
-| AcceptorConnectionTest | 1 | End-to-end echo test |
-| HttpRequestTest | 6 | Request data model |
-| HttpResponseTest | 8 | Response serialization |
-| HttpParserTest | 5 | Half-packet, sticky-packet, Keep-Alive |
-| EventLoopThreadTest | 4 | Thread synchronization, callback dispatch |
-| EventLoopThreadPoolTest | 3 | Round-robin, multi-thread dispatch |
-| TimerQueueTest | 2 | One-shot & repeating timers |
-| IdleConnectionTest | 2 | Idle timeout kick, active connection keep-alive |
-| LoggerTest | 3 | 10000-line multi-thread write, log-level filter |
-| **Total** | **69** | |
+| 测试套件 | 测试数 | 覆盖范围 |
+|----------|--------|----------|
+| InetAddressTest | 6 | IP/端口构造，sockaddr 转换 |
+| BufferTest | 11 | 读写、readfd、prepend、扩容 |
+| ChannelTest | 10 | 事件使能/禁用、回调分发 |
+| PollerTest | 7 | epoll 生命周期、多 Channel |
+| EventLoopTest | 1 | timerfd 集成测试 |
+| AcceptorConnectionTest | 1 | 端到端 echo 测试 |
+| HttpRequestTest | 6 | 请求数据模型 |
+| HttpResponseTest | 8 | 响应序列化 |
+| HttpParserTest | 5 | 半包、粘包、Keep-Alive |
+| EventLoopThreadTest | 4 | 线程同步、回调分发 |
+| EventLoopThreadPoolTest | 3 | Round-Robin、多线程分发 |
+| TimerQueueTest | 2 | 一次性/重复定时器 |
+| IdleConnectionTest | 2 | 空闲超时踢出、活跃连接保活 |
+| LoggerTest | 3 | 万行多线程写入、日志级别过滤 |
+| **合计** | **69** | |
 
-## Tech Stack
+## 技术选型
 
-| Option | Choice | Reason |
-|--------|--------|--------|
-| IO Multiplexing | epoll (ET mode) | Most efficient on Linux, ET reduces syscalls |
-| Threading Model | Main-Sub Reactor | Industry standard (Nginx / Netty) |
-| C++ Standard | C++17 | `string_view`, `optional`, `any`, structured bindings |
-| Build System | CMake 3.16+ | Industry standard |
-| Testing | Google Test | Mainstream, easy integration |
-| Serialization | None (plain HTTP) | No external dependencies |
+| 选项 | 选择 | 原因 |
+|------|------|------|
+| IO 多路复用 | epoll（ET 模式） | Linux 最高效，ET 模式减少系统调用 |
+| 线程模型 | 主从 Reactor | 业界主流方案（Nginx / Netty） |
+| C++ 标准 | C++17 | `string_view`、`optional`、`any`、结构化绑定 |
+| 构建系统 | CMake 3.16+ | 业界标准 |
+| 测试框架 | Google Test | 主流，集成方便 |
+| 序列化 | 无（纯文本 HTTP） | 零外部依赖 |
 
-## Development Log
+## 开发日志
 
-Detailed development logs for each phase are available in the `docs/` directory:
+各阶段详细开发日志位于 `docs/` 目录：
 
-- [Phase 1: Single-threaded Reactor](docs/phase1_log.md) — Core network layer (8 modules)
-- [Phase 2: HTTP Protocol Layer](docs/phase2_log.md) — HTTP parsing and response (5 modules)
-- [Phase 3: Multi-threaded Reactor](docs/phase3_log.md) — Thread pool and connection distribution (3 modules)
-- [Phase 4: Stability & Observability](docs/phase4_log.md) — Timer, idle timeout, async logging (6 modules)
+- [阶段一：单线程 Reactor](docs/phase1_log.md) — 核心网络层（8 个模块）
+- [阶段二：HTTP 协议层](docs/phase2_log.md) — HTTP 解析与响应（5 个模块）
+- [阶段三：多线程 Reactor](docs/phase3_log.md) — 线程池与连接分发（3 个模块）
+- [阶段四：稳定性与可观测性](docs/phase4_log.md) — 定时器、空闲超时、异步日志（6 个模块）
 
-## Code Statistics
+## 代码统计
 
-| Directory | Files | Lines |
-|-----------|-------|-------|
+| 目录 | 文件数 | 行数 |
+|------|--------|------|
 | src/core/ | 20 | ~1,600 |
 | src/http/ | 10 | ~608 |
 | src/utils/ | 6 | ~553 |
 | src/main.cpp | 1 | 48 |
 | tests/ | 13 | ~1,549 |
-| **Total** | **50** | **~4,358** |
+| **合计** | **50** | **~4,358** |
 
-## Benchmark
+## 压力测试
 
-Test environment: Linux 6.8.0 / 4 CPU cores / wrk 4.1.0 / 10s per test
+测试环境：Linux 6.8.0 / 4 核 CPU / wrk 4.1.0 / 每轮 10 秒
 
 ![QPS Benchmark](docs/benchmark.svg)
 
-### QPS Comparison
+### QPS 对比
 
-| Connections | 1 Thread | 4 Threads | Speedup |
-|-------------|----------|-----------|---------|
+| 并发连接 | 单线程 | 4 线程 | 提升幅度 |
+|----------|--------|--------|----------|
 | 100 | 77,761 req/s | 147,166 req/s | **+89%** |
 | 500 | 69,520 req/s | 138,166 req/s | **+99%** |
 | 1000 | 54,931 req/s | 122,764 req/s | **+123%** |
 
-### Latency Comparison
+### 延迟对比
 
-| Connections | 1 Thread (avg) | 4 Threads (avg) |
-|-------------|----------------|-----------------|
+| 并发连接 | 单线程（平均） | 4 线程（平均） |
+|----------|----------------|----------------|
 | 100 | 1.28 ms | 0.96 ms |
 | 500 | 7.15 ms | 3.90 ms |
 | 1000 | 18.10 ms | 8.39 ms |
 
-### Throughput Comparison
+### 吞吐量对比
 
-| Connections | 1 Thread | 4 Threads |
-|-------------|----------|-----------|
+| 并发连接 | 单线程 | 4 线程 |
+|----------|--------|--------|
 | 100 | 9.49 MB/s | 17.96 MB/s |
 | 500 | 8.49 MB/s | 16.87 MB/s |
 | 1000 | 6.71 MB/s | 14.99 MB/s |
 
-> For interactive charts, open [docs/benchmark.html](docs/benchmark.html) in a browser.
+> 交互式图表请在浏览器中打开 [docs/benchmark.html](docs/benchmark.html)。
 
-## License
+## 开源协议
 
-This project is for educational purposes.
+本项目仅供学习使用。
