@@ -278,7 +278,7 @@ Test environment: Linux 6.8.0 / 4 CPU cores / wrk 4.1.0 / 10s per test
 | 500 | 8.49 MB/s | 16.87 MB/s |
 | 1000 | 6.71 MB/s | 14.99 MB/s |
 
-> For interactive charts, open [docs/benchmark.html](https://islxhere.github.io/cpp-http-server/docs/benchmark.html) in a browser.
+> For interactive charts, open [benchmark.html](https://islxhere.github.io/cpp-http-server/benchmark.html) in a browser.
 
 ## License
 
