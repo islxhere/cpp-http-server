@@ -45,7 +45,6 @@ http-server/
 ├── CMakeLists.txt
 ├── README.md
 ├── README_en.md                   # English documentation
-├── DESIGN.md                      # 详细设计文档
 ├── docs/
 │   ├── phase1_log.md              # 阶段一：单线程 Reactor
 │   ├── phase2_log.md              # 阶段二：HTTP 协议层
@@ -68,7 +67,6 @@ http-server/
 │   ├── http/                      # HTTP 层
 │   │   ├── http_request.h/cpp     # HTTP 请求数据模型
 │   │   ├── http_response.h/cpp    # HTTP 响应构造与序列化
-│   │   ├── http_parser.h/cpp      # 无状态请求行与头部解析器
 │   │   ├── http_context.h/cpp     # 每连接状态机
 │   │   └── http_server.h/cpp      # HTTP 服务器，封装 TcpServer
 │   │
@@ -87,7 +85,6 @@ http-server/
     ├── test_event_loop.cpp
     ├── test_acceptor_connection.cpp
     ├── test_http_request_response.cpp
-    ├── test_http_parser.cpp
     ├── test_event_loop_thread.cpp
     ├── test_event_loop_thread_pool.cpp
     ├── test_timer_queue.cpp

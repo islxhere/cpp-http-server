@@ -8,7 +8,7 @@ Inspired by [muduo](https://github.com/chenshuo/muduo) (by Chen Shuo), implement
 
 ## Features
 
-- **Main-Sub Reactor Architecture** — MainLoop accepts connections, SubLoop(s) handle all IO
+- **Main-Sub Reactor Architecture** — MainLoop accepts connections, SubLoops handle all I/O
 - **epoll (ET mode)** — Edge-triggered epoll for minimal system call overhead
 - **Multi-threaded** — Configurable worker thread pool, round-robin connection distribution
 - **HTTP/1.1 Parsing** — State machine parser supporting half-packet / sticky-packet scenarios
@@ -44,7 +44,6 @@ Inspired by [muduo](https://github.com/chenshuo/muduo) (by Chen Shuo), implement
 http-server/
 ├── CMakeLists.txt
 ├── README.md
-├── DESIGN.md                      # Detailed design document
 ├── docs/
 │   ├── phase1_log.md              # Phase 1: Single-threaded Reactor
 │   ├── phase2_log.md              # Phase 2: HTTP Protocol Layer
@@ -67,7 +66,6 @@ http-server/
 │   ├── http/                      # HTTP Layer
 │   │   ├── http_request.h/cpp     # HTTP request data model
 │   │   ├── http_response.h/cpp    # HTTP response builder & serializer
-│   │   ├── http_parser.h/cpp      # Stateless request-line & header parser
 │   │   ├── http_context.h/cpp     # Per-connection state machine
 │   │   └── http_server.h/cpp      # HTTP server wrapping TcpServer
 │   │
@@ -86,7 +84,6 @@ http-server/
     ├── test_event_loop.cpp
     ├── test_acceptor_connection.cpp
     ├── test_http_request_response.cpp
-    ├── test_http_parser.cpp
     ├── test_event_loop_thread.cpp
     ├── test_event_loop_thread_pool.cpp
     ├── test_timer_queue.cpp
@@ -221,7 +218,7 @@ The frontend writes to `buffer_` under a lock, then `notify_one()`. The backend 
 
 | Option | Choice | Reason |
 |--------|--------|--------|
-| IO Multiplexing | epoll (ET mode) | Most efficient on Linux, ET reduces syscalls |
+| I/O Multiplexing | epoll (ET mode) | Most efficient on Linux, ET reduces syscalls |
 | Threading Model | Main-Sub Reactor | Industry standard (Nginx / Netty) |
 | C++ Standard | C++17 | `string_view`, `optional`, `any`, structured bindings |
 | Build System | CMake 3.16+ | Industry standard |

@@ -23,7 +23,16 @@ target_link_libraries(http_server pthread)
 
 # 测试
 enable_testing()
-add_subdirectory(build/_deps/googletest-src build/_deps/googletest-build EXCLUDE_FROM_ALL)
+find_package(GTest QUIET)
+if(NOT GTest_FOUND)
+    include(FetchContent)
+    FetchContent_Declare(
+        googletest
+        URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.zip
+        DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+    )
+    FetchContent_MakeAvailable(googletest)
+endif()
 
 file(GLOB TEST_SRCS tests/*.cpp)
 add_executable(run_tests ${TEST_SRCS} ${CORE_SRCS} ${HTTP_SRCS} ${UTILS_SRCS})
